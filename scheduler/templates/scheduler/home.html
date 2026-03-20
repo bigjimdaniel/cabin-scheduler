@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+{% if cabin %}
+    <section class="hero">
+        <div>
+            <p class="eyebrow">Shared cabin calendar</p>
+            <h1>Daniel Dream</h1>
+            <p class="muted">{{ cabin.name }}</p>
+            <p>{{ cabin.description|default:"A simple home base for viewing availability and requesting stays." }}</p>
+            <section class="carousel panel" aria-label="Cabin photo gallery" data-carousel data-carousel-interval="5000" tabindex="0">
+                <div class="carousel-stage">
+                    <div class="carousel-slide is-active" data-carousel-slide aria-hidden="false">
+                        <img src="{% static 'img/home-carousel/cabin1.jpg' %}" alt="Cabin exterior view" loading="eager">
+                    </div>
+                    <div class="carousel-slide" data-carousel-slide aria-hidden="true" hidden>
+                        <img src="{% static 'img/home-carousel/cabin2.jpg' %}" alt="Cabin surrounded by trees" loading="lazy">
+                    </div>
+                    <div class="carousel-slide" data-carousel-slide aria-hidden="true" hidden>
+                        <img src="{% static 'img/home-carousel/cabin3.jpg' %}" alt="Cabin porch and outdoor setting" loading="lazy">
+                    </div>
+                    <div class="carousel-slide" data-carousel-slide aria-hidden="true" hidden>
+                        <img src="{% static 'img/home-carousel/cabin4.jpg' %}" alt="Cabin view from the path" loading="lazy">
+                    </div>
+                    <div class="carousel-slide" data-carousel-slide aria-hidden="true" hidden>
+                        <img src="{% static 'img/home-carousel/cabin5.jpg' %}" alt="Cabin landscape scene" loading="lazy">
+                    </div>
+                </div>
+                <div class="carousel-indicators" aria-label="Select photo">
+                    <button type="button" class="carousel-indicator is-active" data-carousel-indicator data-slide-to="0" aria-label="Show photo 1" aria-current="true"></button>
+                    <button type="button" class="carousel-indicator" data-carousel-indicator data-slide-to="1" aria-label="Show photo 2" aria-current="false"></button>
+                    <button type="button" class="carousel-indicator" data-carousel-indicator data-slide-to="2" aria-label="Show photo 3" aria-current="false"></button>
+                    <button type="button" class="carousel-indicator" data-carousel-indicator data-slide-to="3" aria-label="Show photo 4" aria-current="false"></button>
+                    <button type="button" class="carousel-indicator" data-carousel-indicator data-slide-to="4" aria-label="Show photo 5" aria-current="false"></button>
+                </div>
+            </section>
+            {% if cabin.location %}
+                <p class="muted">Location: {{ cabin.location }}</p>
+            {% endif %}
+        </div>
+        <div class="hero-card panel">
+            <p class="stat-label">Pending requests</p>
+            <p class="stat-number">{{ pending_count }}</p>
+            <p class="muted">Admins approve requests before dates become booked.</p>
+            <div class="hero-actions">
+                <a class="button" href="{% url 'calendar' %}">View Calendar</a>
+                <a class="button button-secondary" href="{% url 'reservation-create' %}">Request Stay</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid-two">
+        <article class="panel">
+            <h2>How it works</h2>
+            <ol class="plain-list">
+                <li>Sign in with an invited account.</li>
+                <li>Check open dates in the calendar.</li>
+                <li>Submit a reservation request.</li>
+                <li>An admin approves or rejects the request.</li>
+            </ol>
+        </article>
+        <article class="panel">
+            <h2>Upcoming approved stays</h2>
+            {% if upcoming_reservations %}
+                <ul class="plain-list">
+                    {% for reservation in upcoming_reservations %}
+                        <li>
+                            <strong>{{ reservation.start_date }}</strong> to
+                            <strong>{{ reservation.end_date }}</strong>
+                            <span class="muted">({{ reservation.nights }} nights)</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="muted">No approved stays are on the books right now.</p>
+            {% endif %}
+        </article>
+    </section>
+{% else %}
+    <section class="panel">
+        <h1>Daniel Dream</h1>
+        <p>No cabin has been configured yet. Create one in the Django admin to start accepting requests.</p>
+        <p><a href="/admin/">Open admin</a></p>
+    </section>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/home-carousel.js' %}" defer></script>
+{% endblock %}

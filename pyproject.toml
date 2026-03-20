@@ -1,0 +1,13 @@
+[project]
+name = "cabin-scheduler"
+version = "0.1.0"
+description = "Cabin Scheduler, a Django app for managing cabin reservation requests."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=6.0.3",
+    "gunicorn>=25.1.0",
+    "psycopg[binary]>=3.3.3",
+    "python-dotenv>=1.2.2",
+    "whitenoise>=6.12.0",
+]

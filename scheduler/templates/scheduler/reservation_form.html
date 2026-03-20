@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Request Stay | Daniel Dream{% endblock %}
+
+{% block content %}
+<section class="panel form-panel">
+    <p class="eyebrow">Request a stay</p>
+    <h1>Submit reservation request</h1>
+    <p>Your request will start as pending and needs admin approval before it is confirmed.</p>
+    <form method="post" class="stack-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Submit request</button>
+    </form>
+</section>
+{% endblock %}

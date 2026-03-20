@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar | Daniel Dream{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="calendar-header">
+        <div>
+            <p class="eyebrow">Availability</p>
+            <h1>{{ current_month|date:"F Y" }}</h1>
+        </div>
+        <div class="calendar-nav">
+            <a href="?year={{ previous_month.year }}&month={{ previous_month.month }}">Previous</a>
+            <a href="?year={{ next_month.year }}&month={{ next_month.month }}">Next</a>
+        </div>
+    </div>
+
+    <div class="legend">
+        <span class="legend-chip legend-open">Open</span>
+        <span class="legend-chip legend-pending">Pending</span>
+        <span class="legend-chip legend-approved">Booked</span>
+        <span class="legend-chip legend-blocked">Blocked</span>
+    </div>
+
+    <div class="calendar-grid">
+        <div class="calendar-weekday">Sun</div>
+        <div class="calendar-weekday">Mon</div>
+        <div class="calendar-weekday">Tue</div>
+        <div class="calendar-weekday">Wed</div>
+        <div class="calendar-weekday">Thu</div>
+        <div class="calendar-weekday">Fri</div>
+        <div class="calendar-weekday">Sat</div>
+        {% for week in weeks %}
+            {% for day in week %}
+                <article class="calendar-day calendar-day--{{ day.state }} {% if not day.in_month %}calendar-day--muted{% endif %}">
+                    <span class="calendar-day__number">{{ day.day.day }}</span>
+                    <span class="calendar-day__label">{{ day.label }}</span>
+                </article>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

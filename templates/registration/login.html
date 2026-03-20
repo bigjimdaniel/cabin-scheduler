@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In | Daniel Dream{% endblock %}
+
+{% block content %}
+<section class="panel auth-panel">
+    <h1>Sign in</h1>
+    <p>Use your invited account to request cabin stays and review availability.</p>
+    <form method="post" class="stack-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Sign In</button>
+    </form>
+    <p><a href="{% url 'password_reset' %}">Forgot your password?</a></p>
+</section>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Reservations | Daniel Dream{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="section-header">
+        <div>
+            <p class="eyebrow">{% if request.user.is_staff %}Admin view{% else %}My trips{% endif %}</p>
+            <h1>Reservations</h1>
+        </div>
+        <a class="button" href="{% url 'reservation-create' %}">New request</a>
+    </div>
+
+    {% if reservations %}
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        {% if request.user.is_staff %}<th>User</th>{% endif %}
+                        <th>Dates</th>
+                        <th>Nights</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reservation in reservations %}
+                        <tr>
+                            {% if request.user.is_staff %}<td>{{ reservation.user.username }}</td>{% endif %}
+                            <td>{{ reservation.start_date }} to {{ reservation.end_date }}</td>
+                            <td>{{ reservation.nights }}</td>
+                            <td><span class="status-pill status-pill--{{ reservation.status }}">{{ reservation.get_status_display }}</span></td>
+                            <td>{{ reservation.notes|default:"-" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">No reservations yet.</p>
+    {% endif %}
+</section>
+{% endblock %}
