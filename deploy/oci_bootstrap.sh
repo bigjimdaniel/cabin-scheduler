@@ -28,16 +28,16 @@ apt-get install -y \
   python3-venv \
   unzip
 
-if ! command -v uv >/dev/null 2>&1; then
-  curl -LsSf https://astral.sh/uv/install.sh | sh
+if ! sudo -u "${APP_USER}" bash -lc 'command -v "$HOME/.local/bin/uv" >/dev/null 2>&1'; then
+  sudo -u "${APP_USER}" bash -lc 'curl -LsSf https://astral.sh/uv/install.sh | sh'
 fi
 
-if [[ -x /root/.local/bin/uv && ! -x /usr/local/bin/uv ]]; then
-  ln -s /root/.local/bin/uv /usr/local/bin/uv
+if [[ -x "/home/${APP_USER}/.local/bin/uv" ]]; then
+  ln -sf "/home/${APP_USER}/.local/bin/uv" /usr/local/bin/uv
 fi
 
-if [[ -x /root/.local/bin/uvx && ! -x /usr/local/bin/uvx ]]; then
-  ln -s /root/.local/bin/uvx /usr/local/bin/uvx
+if [[ -x "/home/${APP_USER}/.local/bin/uvx" ]]; then
+  ln -sf "/home/${APP_USER}/.local/bin/uvx" /usr/local/bin/uvx
 fi
 
 install -d -o "${APP_USER}" -g "${APP_GROUP}" "${APP_DIR}"

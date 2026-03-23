@@ -7,6 +7,7 @@ APP_GROUP="${APP_GROUP:-www-data}"
 SERVICE_NAME="${SERVICE_NAME:-cabin-scheduler}"
 ENV_FILE="${ENV_FILE:-${APP_DIR}/.env}"
 NGINX_SITE="${NGINX_SITE:-/etc/nginx/sites-available/${SERVICE_NAME}}"
+FORCE_NGINX_SITE_REFRESH="${FORCE_NGINX_SITE_REFRESH:-false}"
 
 if [[ ! -d "${APP_DIR}" ]]; then
   echo "Application directory ${APP_DIR} does not exist."
@@ -46,10 +47,22 @@ sed -i "s#WorkingDirectory=/opt/cabin-scheduler#WorkingDirectory=${APP_DIR}#" "/
 sed -i "s#EnvironmentFile=/opt/cabin-scheduler/.env#EnvironmentFile=${ENV_FILE}#" "/etc/systemd/system/${SERVICE_NAME}.service"
 sed -i "s#ExecStart=/opt/cabin-scheduler/.venv/bin/gunicorn#ExecStart=${APP_DIR}/.venv/bin/gunicorn#" "/etc/systemd/system/${SERVICE_NAME}.service"
 
-install -m 0644 deploy/nginx.conf "${NGINX_SITE}"
-if [[ -n "${PUBLIC_SERVER_NAME:-}" ]]; then
-  sed -i "s/server_name _;/server_name ${PUBLIC_SERVER_NAME};/" "${NGINX_SITE}"
+SKIP_NGINX_SITE_REFRESH=false
+if [[ -f "${NGINX_SITE}" && "${FORCE_NGINX_SITE_REFRESH}" != "true" ]]; then
+  if grep -Eq 'listen 443|ssl_certificate|managed by Certbot' "${NGINX_SITE}"; then
+    SKIP_NGINX_SITE_REFRESH=true
+  fi
 fi
+
+if [[ "${SKIP_NGINX_SITE_REFRESH}" == "true" ]]; then
+  echo "Preserving existing HTTPS-enabled Nginx site at ${NGINX_SITE}."
+else
+  install -m 0644 deploy/nginx.conf "${NGINX_SITE}"
+  if [[ -n "${PUBLIC_SERVER_NAME:-}" ]]; then
+    sed -i "s/server_name _;/server_name ${PUBLIC_SERVER_NAME};/" "${NGINX_SITE}"
+  fi
+fi
+
 ln -sf "${NGINX_SITE}" "/etc/nginx/sites-enabled/${SERVICE_NAME}"
 rm -f /etc/nginx/sites-enabled/default
 

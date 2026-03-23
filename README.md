@@ -110,6 +110,69 @@ Target one always-free Ubuntu VM:
 
 7. Update `PUBLIC_SERVER_NAME` in the deployment environment or the Nginx config, then use Certbot to enable HTTPS.
 
+After Certbot adds TLS to the live Nginx site, future runs of `deploy/oci_deploy.sh` will preserve that HTTPS-enabled site file automatically. If you intentionally want to replace the Nginx site from `deploy/nginx.conf`, run with:
+
+```bash
+sudo FORCE_NGINX_SITE_REFRESH=true APP_DIR=/opt/cabin-scheduler APP_USER=ubuntu APP_GROUP=www-data SERVICE_NAME=cabin-scheduler ENV_FILE=/opt/cabin-scheduler/.env PUBLIC_SERVER_NAME='your-domain.com www.your-domain.com' bash ./deploy/oci_deploy.sh
+```
+
+## Git-Based VM Deploys
+
+For simpler updates, use a Git checkout on the VM instead of re-uploading tarballs.
+
+### One-Time Conversion On The VM
+
+1. Back up your existing environment file:
+
+   ```bash
+   sudo cp /opt/cabin-scheduler/.env /tmp/daniel-dream.env.backup
+   ```
+
+2. Move the current tarball-based app directory aside:
+
+   ```bash
+   sudo mv /opt/cabin-scheduler /opt/cabin-scheduler.pre-git.$(date +%Y%m%d-%H%M%S)
+   ```
+
+3. Clone the GitHub repo as `ubuntu`:
+
+   ```bash
+   sudo -u ubuntu git clone git@github.com:bigjimdaniel/cabin-scheduler.git /opt/cabin-scheduler
+   ```
+
+4. Restore the production environment file:
+
+   ```bash
+   sudo mv /tmp/daniel-dream.env.backup /opt/cabin-scheduler/.env
+   sudo chown ubuntu:www-data /opt/cabin-scheduler/.env
+   sudo chmod 600 /opt/cabin-scheduler/.env
+   ```
+
+5. Run a normal deployment once from the Git checkout:
+
+   ```bash
+   cd /opt/cabin-scheduler
+   sudo APP_DIR=/opt/cabin-scheduler APP_USER=ubuntu APP_GROUP=www-data SERVICE_NAME=cabin-scheduler ENV_FILE=/opt/cabin-scheduler/.env PUBLIC_SERVER_NAME=_ bash ./deploy/oci_deploy.sh
+   ```
+
+### Future Updates
+
+After you push changes to GitHub, update the VM with:
+
+```bash
+cd /opt/cabin-scheduler
+sudo APP_DIR=/opt/cabin-scheduler APP_USER=ubuntu APP_GROUP=www-data SERVICE_NAME=cabin-scheduler ENV_FILE=/opt/cabin-scheduler/.env PUBLIC_SERVER_NAME=_ bash ./deploy/oci_git_update.sh
+```
+
+This script:
+
+- pulls the latest code from `origin/main`
+- runs `uv sync`
+- runs Django migrations
+- collects static assets
+- restarts Gunicorn and Nginx
+- preserves the live Certbot-managed Nginx site if HTTPS is already configured
+
 ## Backups
 
 The repo includes `scripts/backup_db.sh` for PostgreSQL backups on OCI. Run it from cron or a systemd timer with the database environment variables available in the shell.
