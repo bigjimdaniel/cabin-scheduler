@@ -32,6 +32,13 @@ class BlackoutRange(TimestampedModel):
         on_delete=models.CASCADE,
         related_name="blackout_ranges",
     )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_blackout_ranges",
+    )
     start_date = models.DateField()
     end_date = models.DateField(help_text="Checkout date for the blackout window.")
     reason = models.CharField(max_length=255)
@@ -41,6 +48,13 @@ class BlackoutRange(TimestampedModel):
 
     def __str__(self) -> str:
         return f"{self.cabin} blackout {self.start_date} to {self.end_date}"
+
+    @property
+    def created_by_display(self) -> str:
+        if not self.created_by:
+            return "Unknown"
+        full_name = self.created_by.get_full_name().strip()
+        return full_name or self.created_by.get_username()
 
     def clean(self) -> None:
         if self.end_date <= self.start_date:
@@ -66,6 +80,11 @@ class Reservation(TimestampedModel):
         on_delete=models.CASCADE,
         related_name="reservations",
     )
+    guest_name = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Optional name of the person staying, if different from the requester.",
+    )
     start_date = models.DateField()
     end_date = models.DateField(help_text="Checkout date for the reservation.")
     status = models.CharField(
@@ -88,7 +107,20 @@ class Reservation(TimestampedModel):
         ordering = ["start_date", "created_at"]
 
     def __str__(self) -> str:
-        return f"{self.user} {self.start_date} to {self.end_date} ({self.status})"
+        return f"{self.reserved_for} {self.start_date} to {self.end_date} ({self.status})"
+
+    @property
+    def requested_by(self):
+        return self.user
+
+    @property
+    def requested_by_display(self) -> str:
+        full_name = self.user.get_full_name().strip()
+        return full_name or self.user.get_username()
+
+    @property
+    def reserved_for(self) -> str:
+        return self.guest_name.strip() or self.requested_by_display
 
     @property
     def nights(self) -> int:

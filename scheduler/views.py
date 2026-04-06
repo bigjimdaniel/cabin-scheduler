@@ -10,7 +10,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, TemplateView
 
 from .forms import ReservationRequestForm
-from .models import Cabin, Reservation
+from .models import BlackoutRange, Cabin, Reservation
 
 
 @dataclass
@@ -19,6 +19,15 @@ class CalendarDay:
     in_month: bool
     state: str
     label: str
+    selected_date_label: str = ""
+    detail_type: str = ""
+    reservation_id: int | None = None
+    reserved_for: str = ""
+    requested_by: str = ""
+    blocked_reason: str = ""
+    blocked_by: str = ""
+    date_range_label: str = ""
+    nights: int | None = None
 
 
 def get_primary_cabin() -> Cabin | None:
@@ -39,9 +48,16 @@ def build_calendar_days(cabin: Cabin, current_month: date) -> list[list[Calendar
         current_month.month,
     )
     approved = list(
-        cabin.reservations.filter(status=Reservation.Status.APPROVED).only(
+        cabin.reservations.filter(status=Reservation.Status.APPROVED)
+        .select_related("user")
+        .only(
+            "id",
             "start_date",
             "end_date",
+            "guest_name",
+            "user__username",
+            "user__first_name",
+            "user__last_name",
         )
     )
     pending = list(
@@ -50,28 +66,77 @@ def build_calendar_days(cabin: Cabin, current_month: date) -> list[list[Calendar
             "end_date",
         )
     )
-    blackouts = list(cabin.blackout_ranges.only("start_date", "end_date"))
+    blackouts = list(
+        cabin.blackout_ranges.select_related("created_by").only(
+            "id",
+            "start_date",
+            "end_date",
+            "reason",
+            "created_by__username",
+            "created_by__first_name",
+            "created_by__last_name",
+        )
+    )
 
-    def state_for_day(day_value: date) -> tuple[str, str]:
-        if any(item.start_date <= day_value < item.end_date for item in blackouts):
-            return ("blocked", "Blocked")
-        if any(item.start_date <= day_value < item.end_date for item in approved):
-            return ("approved", "Booked")
+    def approved_for_day(day_value: date) -> Reservation | None:
+        return next(
+            (item for item in approved if item.start_date <= day_value < item.end_date),
+            None,
+        )
+
+    def blackout_for_day(day_value: date) -> BlackoutRange | None:
+        return next(
+            (item for item in blackouts if item.start_date <= day_value < item.end_date),
+            None,
+        )
+
+    def state_for_day(
+        day_value: date,
+    ) -> tuple[str, str, Reservation | None, BlackoutRange | None]:
+        blackout = blackout_for_day(day_value)
+        if blackout:
+            return ("blocked", "Blocked", None, blackout)
+        approved_reservation = approved_for_day(day_value)
+        if approved_reservation:
+            return ("approved", "Booked", approved_reservation, None)
         if any(item.start_date <= day_value < item.end_date for item in pending):
-            return ("pending", "Pending")
-        return ("open", "Open")
+            return ("pending", "Pending", None, None)
+        return ("open", "Open", None, None)
 
     weeks: list[list[CalendarDay]] = []
     for week in month_days:
         rendered_week = []
         for day_value in week:
-            state, label = state_for_day(day_value)
+            state, label, reservation, blackout = state_for_day(day_value)
             rendered_week.append(
                 CalendarDay(
                     day=day_value,
                     in_month=day_value.month == current_month.month,
                     state=state,
                     label=label,
+                    selected_date_label=day_value.strftime("%b %d, %Y"),
+                    detail_type=(
+                        "reservation" if reservation else "blackout" if blackout else ""
+                    ),
+                    reservation_id=reservation.id if reservation else None,
+                    reserved_for=reservation.reserved_for if reservation else "",
+                    requested_by=reservation.requested_by_display if reservation else "",
+                    blocked_reason=blackout.reason if blackout else "",
+                    blocked_by=blackout.created_by_display if blackout else "",
+                    date_range_label=(
+                        f"{reservation.start_date:%b %-d, %Y} to {reservation.end_date:%b %-d, %Y}"
+                        if reservation
+                        else (
+                            f"{blackout.start_date:%b %-d, %Y} to {blackout.end_date:%b %-d, %Y}"
+                            if blackout
+                            else ""
+                        )
+                    ),
+                    nights=(
+                        reservation.nights
+                        if reservation
+                        else (blackout.end_date - blackout.start_date).days if blackout else None
+                    ),
                 )
             )
         weeks.append(rendered_week)

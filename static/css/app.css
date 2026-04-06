@@ -383,6 +383,27 @@ button,
     border: 1px solid rgba(93, 59, 36, 0.08);
 }
 
+.calendar-day--interactive {
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.calendar-day--interactive:hover,
+.calendar-day--interactive:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(93, 59, 36, 0.12);
+    border-color: rgba(93, 59, 36, 0.24);
+    outline: none;
+}
+
+.calendar-day.is-selected {
+    border-color: rgba(93, 59, 36, 0.72);
+    box-shadow:
+        inset 0 0 0 2px rgba(93, 59, 36, 0.38),
+        0 12px 24px rgba(93, 59, 36, 0.16);
+    transform: translateY(-2px);
+}
+
 .calendar-day--open {
     background: var(--open);
 }
@@ -410,6 +431,29 @@ button,
 
 .calendar-day__label {
     font-size: 0.85rem;
+}
+
+.calendar-details {
+    margin-top: 1.25rem;
+}
+
+.calendar-details__list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.5rem;
+    margin: 1rem 0 0;
+}
+
+.calendar-details__list dt {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 0.2rem;
+}
+
+.calendar-details__list dd {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
 }
 
 .table-scroll {
@@ -482,6 +526,10 @@ td {
 
     .calendar-day {
         min-height: 88px;
+    }
+
+    .calendar-details__list {
+        grid-template-columns: 1fr;
     }
 
     .carousel-stage,

@@ -17,7 +17,8 @@
             <table>
                 <thead>
                     <tr>
-                        {% if request.user.is_staff %}<th>User</th>{% endif %}
+                        {% if request.user.is_staff %}<th>Requested By</th>{% endif %}
+                        <th>Reserved For</th>
                         <th>Dates</th>
                         <th>Nights</th>
                         <th>Status</th>
@@ -27,7 +28,8 @@
                 <tbody>
                     {% for reservation in reservations %}
                         <tr>
-                            {% if request.user.is_staff %}<td>{{ reservation.user.username }}</td>{% endif %}
+                            {% if request.user.is_staff %}<td>{{ reservation.requested_by_display }}</td>{% endif %}
+                            <td>{{ reservation.reserved_for }}</td>
                             <td>{{ reservation.start_date }} to {{ reservation.end_date }}</td>
                             <td>{{ reservation.nights }}</td>
                             <td><span class="status-pill status-pill--{{ reservation.status }}">{{ reservation.get_status_display }}</span></td>

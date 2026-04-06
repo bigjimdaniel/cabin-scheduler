@@ -6,13 +6,17 @@ from .models import Reservation
 class ReservationRequestForm(forms.ModelForm):
     class Meta:
         model = Reservation
-        fields = ["start_date", "end_date", "notes"]
+        fields = ["guest_name", "start_date", "end_date", "notes"]
         widgets = {
+            "guest_name": forms.TextInput(
+                attrs={"placeholder": "Leave blank if this reservation is for you"}
+            ),
             "start_date": forms.DateInput(attrs={"type": "date"}),
             "end_date": forms.DateInput(attrs={"type": "date"}),
             "notes": forms.Textarea(attrs={"rows": 4}),
         }
         help_texts = {
+            "guest_name": "Optional. Leave blank if this reservation is for you.",
             "end_date": "Choose the checkout date. Same-day bookings are not allowed.",
         }
 

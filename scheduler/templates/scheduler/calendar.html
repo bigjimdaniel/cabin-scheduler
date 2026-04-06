@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Calendar | Daniel Dream{% endblock %}
 
@@ -22,7 +23,7 @@
         <span class="legend-chip legend-blocked">Blocked</span>
     </div>
 
-    <div class="calendar-grid">
+    <div class="calendar-grid" data-calendar-grid>
         <div class="calendar-weekday">Sun</div>
         <div class="calendar-weekday">Mon</div>
         <div class="calendar-weekday">Tue</div>
@@ -32,12 +33,75 @@
         <div class="calendar-weekday">Sat</div>
         {% for week in weeks %}
             {% for day in week %}
-                <article class="calendar-day calendar-day--{{ day.state }} {% if not day.in_month %}calendar-day--muted{% endif %}">
+                <article
+                    class="calendar-day calendar-day--{{ day.state }} {% if not day.in_month %}calendar-day--muted{% endif %} {% if day.detail_type %}calendar-day--interactive{% endif %}"
+                    {% if day.detail_type %}
+                        data-calendar-day
+                        data-detail-type="{{ day.detail_type }}"
+                        data-reservation-id="{{ day.reservation_id }}"
+                        data-reserved-for="{{ day.reserved_for }}"
+                        data-requested-by="{{ day.requested_by }}"
+                        data-blocked-reason="{{ day.blocked_reason }}"
+                        data-blocked-by="{{ day.blocked_by }}"
+                        data-date-range="{{ day.date_range_label }}"
+                        data-selected-date="{{ day.selected_date_label }}"
+                        data-night-count="{{ day.nights }}"
+                        tabindex="0"
+                        role="button"
+                        aria-label="{% if day.detail_type == 'reservation' %}Show booking details for {{ day.reserved_for }} on {{ day.day|date:'F j, Y' }}{% else %}Show blackout details for {{ day.day|date:'F j, Y' }}{% endif %}"
+                    {% endif %}
+                >
                     <span class="calendar-day__number">{{ day.day.day }}</span>
                     <span class="calendar-day__label">{{ day.label }}</span>
                 </article>
             {% endfor %}
         {% endfor %}
     </div>
+
+    <section
+        class="calendar-details panel"
+        data-calendar-details
+        {% if not weeks or not weeks.0 %}hidden{% endif %}
+    >
+        <p class="eyebrow">Date details</p>
+        <h2 data-calendar-details-title>Select a booked day</h2>
+        <p class="muted" data-calendar-details-empty>
+            Click a booked or blocked day in the calendar to see the details.
+        </p>
+        <dl class="calendar-details__list" data-calendar-details-list hidden>
+            <div>
+                <dt>Selected Date</dt>
+                <dd data-calendar-selected-date></dd>
+            </div>
+            <div>
+                <dt>Reserved For</dt>
+                <dd data-calendar-reserved-for></dd>
+            </div>
+            <div>
+                <dt>Requested By</dt>
+                <dd data-calendar-requested-by></dd>
+            </div>
+            <div>
+                <dt>Dates</dt>
+                <dd data-calendar-date-range></dd>
+            </div>
+            <div>
+                <dt>Nights</dt>
+                <dd data-calendar-night-count></dd>
+            </div>
+            <div data-calendar-blocked-reason-row hidden>
+                <dt>Block Reason</dt>
+                <dd data-calendar-blocked-reason></dd>
+            </div>
+            <div data-calendar-blocked-by-row hidden>
+                <dt>Blocked By</dt>
+                <dd data-calendar-blocked-by></dd>
+            </div>
+        </dl>
+    </section>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/calendar-details.js' %}" defer></script>
 {% endblock %}
