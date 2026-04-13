@@ -1,7 +1,7 @@
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 
-from .models import BlackoutRange, Cabin, Reservation
+from .models import BlackoutRange, Cabin, Document, Reservation
 
 
 @admin.register(Cabin)
@@ -31,6 +31,26 @@ class BlackoutRangeAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         if not obj.created_by_id:
             obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(Document)
+class DocumentAdmin(admin.ModelAdmin):
+    list_display = ("title", "filename", "uploaded_by_display", "created_at")
+    search_fields = ("title", "description", "file", "uploaded_by__username")
+    readonly_fields = ("created_at", "updated_at")
+    fields = (
+        "title",
+        "description",
+        "file",
+        "uploaded_by",
+        "created_at",
+        "updated_at",
+    )
+
+    def save_model(self, request, obj, form, change):
+        if not obj.uploaded_by_id:
+            obj.uploaded_by = request.user
         super().save_model(request, obj, form, change)
 
 

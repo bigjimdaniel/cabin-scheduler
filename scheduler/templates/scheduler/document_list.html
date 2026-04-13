@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Documents | Daniel Dream{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="section-header">
+        <div>
+            <p class="eyebrow">Shared files</p>
+            <h1>Documents</h1>
+        </div>
+        {% if request.user.is_staff %}
+            <a class="button" href="/admin/scheduler/document/">Manage in Admin</a>
+        {% endif %}
+    </div>
+
+    <p class="muted">Admins can upload cabin-related files here. Logged-in users can open or download them.</p>
+
+    {% if documents %}
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>File</th>
+                        <th>Uploaded By</th>
+                        <th>Added</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for document in documents %}
+                        <tr>
+                            <td>
+                                <strong>{{ document.title }}</strong>
+                                {% if document.description %}
+                                    <div class="muted">{{ document.description }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ document.filename }}</td>
+                            <td>{{ document.uploaded_by_display }}</td>
+                            <td>{{ document.created_at|date:"M j, Y" }}</td>
+                            <td>
+                                <a href="{% url 'document-file' document.pk %}">Open</a>
+                                |
+                                <a href="{% url 'document-file' document.pk %}?download=1">Download</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">No documents have been uploaded yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,16 +1,17 @@
 import calendar
+import mimetypes
 from dataclasses import dataclass
 from datetime import date
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import Http404
-from django.shortcuts import redirect
+from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, TemplateView
 
 from .forms import ReservationRequestForm
-from .models import BlackoutRange, Cabin, Reservation
+from .models import BlackoutRange, Cabin, Document, Reservation
 
 
 @dataclass
@@ -224,3 +225,25 @@ class ReservationListView(LoginRequiredMixin, ListView):
         if self.request.user.is_staff:
             return queryset
         return queryset.filter(user=self.request.user)
+
+
+class DocumentListView(LoginRequiredMixin, ListView):
+    template_name = "scheduler/document_list.html"
+    context_object_name = "documents"
+    queryset = Document.objects.select_related("uploaded_by")
+
+
+class DocumentFileView(LoginRequiredMixin, TemplateView):
+    http_method_names = ["get"]
+
+    def get(self, request, *args, **kwargs):
+        document = get_object_or_404(Document, pk=kwargs["pk"])
+        as_attachment = request.GET.get("download") == "1"
+        content_type, _ = mimetypes.guess_type(document.file.name)
+        response = FileResponse(
+            document.file.open("rb"),
+            as_attachment=as_attachment,
+            filename=document.filename,
+            content_type=content_type or "application/octet-stream",
+        )
+        return response

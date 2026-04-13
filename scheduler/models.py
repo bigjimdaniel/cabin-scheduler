@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
+from pathlib import Path
 
 
 class TimestampedModel(models.Model):
@@ -61,6 +62,36 @@ class BlackoutRange(TimestampedModel):
             raise ValidationError(
                 {"end_date": "End date must be after the start date for overnight stays."}
             )
+
+
+class Document(TimestampedModel):
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    file = models.FileField(upload_to="documents/%Y/%m/")
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_documents",
+    )
+
+    class Meta:
+        ordering = ["title", "-created_at"]
+
+    def __str__(self) -> str:
+        return self.title
+
+    @property
+    def filename(self) -> str:
+        return Path(self.file.name).name
+
+    @property
+    def uploaded_by_display(self) -> str:
+        if not self.uploaded_by:
+            return "Unknown"
+        full_name = self.uploaded_by.get_full_name().strip()
+        return full_name or self.uploaded_by.get_username()
 
 
 class Reservation(TimestampedModel):

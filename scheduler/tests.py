@@ -1,14 +1,18 @@
+import tempfile
 from datetime import date
+from pathlib import Path
 
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.exceptions import ValidationError
 from django.test import RequestFactory
 from django.test import TestCase
+from django.test import override_settings
 from django.urls import reverse
 
-from .admin import BlackoutRangeAdmin, ReservationAdmin
-from .models import BlackoutRange, Cabin, Reservation
+from .admin import BlackoutRangeAdmin, DocumentAdmin, ReservationAdmin
+from .models import BlackoutRange, Cabin, Document, Reservation
 
 
 User = get_user_model()
@@ -394,3 +398,114 @@ class BlackoutRangeAdminTests(TestCase):
         model_admin.save_model(request, blackout, None, change=False)
 
         self.assertEqual(blackout.created_by, self.admin_user)
+
+
+class DocumentViewTests(TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.override = self.settings(MEDIA_ROOT=Path(self.temp_dir.name))
+        self.override.enable()
+        self.user = User.objects.create_user(
+            username="member",
+            password="testpass123",
+            first_name="Casey",
+            last_name="Member",
+        )
+        self.admin = User.objects.create_user(
+            username="admin",
+            password="testpass123",
+            is_staff=True,
+            is_superuser=True,
+            first_name="Admin",
+            last_name="User",
+        )
+
+    def tearDown(self):
+        self.override.disable()
+        self.temp_dir.cleanup()
+        super().tearDown()
+
+    def test_document_list_requires_authentication(self):
+        response = self.client.get(reverse("document-list"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("login"), response.url)
+
+    def test_logged_in_user_can_view_document_list(self):
+        document = Document.objects.create(
+            title="Cabin Rules",
+            description="General expectations for guests.",
+            file=SimpleUploadedFile("rules.txt", b"Be kind to the cabin."),
+            uploaded_by=self.admin,
+        )
+        self.client.login(username="member", password="testpass123")
+
+        response = self.client.get(reverse("document-list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Cabin Rules")
+        self.assertContains(response, "rules.txt")
+        self.assertContains(response, reverse("document-file", args=[document.pk]))
+
+    def test_logged_in_user_can_open_document(self):
+        document = Document.objects.create(
+            title="Cabin Map",
+            file=SimpleUploadedFile("map.txt", b"map content"),
+            uploaded_by=self.admin,
+        )
+        self.client.login(username="member", password="testpass123")
+
+        response = self.client.get(reverse("document-file", args=[document.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("map.txt", response.headers.get("Content-Disposition", ""))
+        self.assertEqual(b"".join(response.streaming_content), b"map content")
+
+    def test_logged_in_user_can_download_document(self):
+        document = Document.objects.create(
+            title="Cabin Guide",
+            file=SimpleUploadedFile("guide.txt", b"guide content"),
+            uploaded_by=self.admin,
+        )
+        self.client.login(username="member", password="testpass123")
+
+        response = self.client.get(reverse("document-file", args=[document.pk]), {"download": "1"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment", response.headers.get("Content-Disposition", ""))
+        self.assertIn("guide.txt", response.headers.get("Content-Disposition", ""))
+        self.assertEqual(b"".join(response.streaming_content), b"guide content")
+
+
+class DocumentAdminTests(TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.override = self.settings(MEDIA_ROOT=Path(self.temp_dir.name))
+        self.override.enable()
+        self.factory = RequestFactory()
+        self.site = AdminSite()
+        self.admin_user = User.objects.create_user(
+            username="admin",
+            password="testpass123",
+            is_staff=True,
+            is_superuser=True,
+            first_name="Admin",
+            last_name="User",
+        )
+
+    def tearDown(self):
+        self.override.disable()
+        self.temp_dir.cleanup()
+        super().tearDown()
+
+    def test_admin_save_model_sets_uploaded_by_on_create(self):
+        model_admin = DocumentAdmin(Document, self.site)
+        request = self.factory.post("/admin/scheduler/document/add/")
+        request.user = self.admin_user
+        document = Document(
+            title="Cabin Contract",
+            file=SimpleUploadedFile("contract.txt", b"contract body"),
+        )
+
+        model_admin.save_model(request, document, None, change=False)
+
+        self.assertEqual(document.uploaded_by, self.admin_user)
