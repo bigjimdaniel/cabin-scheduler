@@ -1,0 +1,37 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block extrahead %}
+{{ block.super }}
+<script src="{% static 'js/invitation-copy.js' %}" defer></script>
+{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+    <a href="{% url 'admin:scheduler_invitation_changelist' %}">Invitations</a> &rsaquo; Invite a guest
+</div>
+{% endblock %}
+{% block content %}
+{% if enrollment_url %}
+<p>Invitation created for <strong>{{ invitation.email }}</strong>. No email was sent.</p>
+<p>Copy this link and send it to your guest by email or text. They'll choose their own username and password.</p>
+<div class="module aligned">
+    <div class="form-row">
+        <label for="enrollment-url">Invitation link:</label>
+        <input id="enrollment-url" type="url" value="{{ enrollment_url }}" readonly autocomplete="off" style="width: min(100%, 48rem); box-sizing: border-box;">
+        <button type="button" id="copy-invitation-link" class="button">Copy link</button>
+        <p id="copy-invitation-status" role="status" aria-live="polite"></p>
+    </div>
+</div>
+<p>Expires {{ invitation.expires_at|date:"F j, Y, H:i T" }}. The link can only be used once.</p>
+<p>Copy it before leaving this page. To get a new link, create another invitation for the same email; the previous link will stop working.</p>
+<p><a href="{% url 'admin:scheduler_invitation_add' %}">Invite another guest</a> &middot; <a href="{% url 'admin:scheduler_invitation_changelist' %}">View invitations</a></p>
+{% else %}
+<p>Create a link for your guest to choose their username and password. Links expire after seven days.</p>
+<p>Creating another invitation for the same email replaces the previous link. Delete an invitation to revoke it.</p>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="submit-row"><input type="submit" value="Create invitation" class="default"></div>
+</form>
+{% endif %}
+{% endblock %}

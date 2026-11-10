@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Create your account | Daniel Dream{% endblock %}
+{% block content %}
+<section class="panel auth-panel">
+    {% if invitation %}
+        <h1>Create your account</h1>
+        <p>Welcome to Daniel Dream! This invitation is for <strong>{{ invitation.email }}</strong>.</p>
+        <p>Choose your username and password to start planning your stays.</p>
+        <form method="post" class="stack-form">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Create account</button>
+        </form>
+    {% else %}
+        <h1>This invitation is unavailable</h1>
+        <p>The link has expired, has already been used, or was revoked. Ask the site administrator for a new invitation.</p>
+        <p>Already enrolled? <a href="{% url 'login' %}">Sign in</a>.</p>
+    {% endif %}
+</section>
+{% endblock %}

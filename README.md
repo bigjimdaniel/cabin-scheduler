@@ -40,6 +40,10 @@ Cabin Scheduler is a Django app for managing reservation requests for a shared c
 
 ## Core Workflow
 
+- Admins create enrollment invitations from `/admin/` → **Invitations** → **Add invitation** by entering a guest's email address. **Copy a link to share yourself** is selected by default and needs no email configuration. Click **Create invitation**, then **Copy link**, and paste it into your own email or text message. If clipboard access is unavailable, select the link and copy it manually.
+- The link is shown only on the creation page. Copy it before leaving; to get another link, create an invitation for the same email. This replaces the previous link. **Send by email** remains an optional delivery method when email is configured.
+- Guests follow the shared link and choose their own username and password. Their account email is fixed to the invited address; enrollment does not grant staff privileges. Share the link directly with the intended guest: anyone holding it can enroll for that address.
+- Links expire after seven days and work only once. Opening a link does not consume it. Delete a pending invitation to revoke it.
 - Invited users authenticate with Django’s built-in auth.
 - Authenticated users can browse the calendar and request stays.
 - Requests start as `pending`.
@@ -55,6 +59,30 @@ Cabin Scheduler is a Django app for managing reservation requests for a shared c
 - `/admin/` admin moderation and data management
 
 ## Environment
+
+### Invitation and password-reset email
+
+Copyable invitation links require no email backend. Use the site's public address when creating links for other people, or configure `SITE_URL` to that address; localhost links are only usable on your own laptop. Password resets still require email delivery.
+
+Local development defaults to the console email backend: if you choose **Send by email**, invitation messages appear in the server terminal, and no email reaches an inbox. Password-reset messages also appear there.
+
+For actual delivery, configure your mail provider's SMTP credentials in `.env`:
+
+```dotenv
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+DEFAULT_FROM_EMAIL=Daniel Dream <your-verified-sender@example.com>
+EMAIL_HOST=your-provider-smtp-host
+EMAIL_PORT=587
+EMAIL_HOST_USER=your-smtp-username
+EMAIL_HOST_PASSWORD=your-smtp-password
+EMAIL_USE_TLS=true
+EMAIL_USE_SSL=false
+SITE_URL=https://your-public-site.example.com
+```
+
+Use your provider's required port/security settings (for implicit TLS on port 465, set `EMAIL_USE_TLS=false` and `EMAIL_USE_SSL=true`). `SITE_URL` is the address recipients can reach; localhost links work only on the machine running the site. If omitted, invitation links use the admin request's origin. Restart the server after changing settings. SMTP credentials stay in `.env`, never in Git.
+
+Admins with permission to add invitations can send them. Delivery errors appear on the invitation form so admins can retry; failed resends preserve the previous link. SMTP acceptance confirms submission to the mail provider, not final inbox delivery.
 
 Important settings are driven by `.env`:
 

@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
+from scheduler.views import enroll
 
 
 urlpatterns = [
+    path("accounts/enroll/<str:token>/", enroll, name="enroll"),
     path("admin/", admin.site.urls),
     path(
         "accounts/login/",

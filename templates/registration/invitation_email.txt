@@ -1,0 +1,7 @@
+You're invited to join Daniel Dream and plan your cabin stays.
+
+Choose your own username and password using this link:
+{{ enrollment_url }}
+
+This link expires on {{ expires_at|date:"F j, Y, H:i T" }} and can only be used once.
+If you weren't expecting this invitation, you can ignore this email.

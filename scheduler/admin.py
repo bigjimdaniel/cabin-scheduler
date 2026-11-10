@@ -1,7 +1,76 @@
 from django.contrib import admin, messages
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied
+from django.db import IntegrityError
+from django.shortcuts import redirect
+from django.template.response import TemplateResponse
+from django.urls import reverse
+from smtplib import SMTPException
 
-from .models import BlackoutRange, Cabin, Document, Reservation
+from .forms import InvitationForm
+from .invitations import create_invitation, send_invitation
+from .models import BlackoutRange, Cabin, Document, Invitation, Reservation
+
+
+@admin.register(Invitation)
+class InvitationAdmin(admin.ModelAdmin):
+    list_display = ("email", "status", "invited_by", "expires_at", "accepted_at")
+    search_fields = ("email",)
+    readonly_fields = ("email", "status", "invited_by", "expires_at", "accepted_at", "created_at", "updated_at")
+    fields = readonly_fields
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def add_view(self, request, form_url="", extra_context=None):
+        if not self.has_add_permission(request):
+            raise PermissionDenied
+        form = InvitationForm(request.POST or None)
+        enrollment_url = None
+        invitation = None
+        if request.method == "POST" and form.is_valid():
+            try:
+                invitation_kwargs = {
+                    "email": form.cleaned_data["email"], "invited_by": request.user,
+                    "base_url": settings.SITE_URL or request.build_absolute_uri("/").rstrip("/"),
+                }
+                if form.cleaned_data["delivery"] == "link":
+                    invitation, enrollment_url = create_invitation(**invitation_kwargs)
+                else:
+                    invitation = send_invitation(**invitation_kwargs)
+            except ValidationError as exc:
+                form.add_error("email", exc)
+            except IntegrityError:
+                form.add_error("email", "This invitation changed while creating it. Please try again.")
+            except (SMTPException, OSError):
+                form.add_error(None, "The invitation could not be sent. Check email delivery settings and try again.")
+            else:
+                self.log_addition(request, invitation, "Created enrollment link." if enrollment_url else "Sent enrollment invitation.")
+                if enrollment_url:
+                    return self.invitation_response(request, form, {
+                        "enrollment_url": enrollment_url, "invitation": invitation,
+                        "title": "Invitation link ready",
+                    })
+                elif settings.EMAIL_BACKEND == "django.core.mail.backends.console.EmailBackend":
+                    self.message_user(request, "Invitation written to the server console. Configure SMTP to deliver email.", level=messages.WARNING)
+                else:
+                    self.message_user(request, "Invitation sent. The enrollment link expires in seven days.")
+                return redirect(reverse("admin:scheduler_invitation_changelist"))
+        return self.invitation_response(request, form, extra_context)
+
+    def invitation_response(self, request, form, extra_context=None):
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Invite a guest", "opts": self.model._meta,
+            "form": form, **(extra_context or {}),
+        }
+        response = TemplateResponse(request, "admin/scheduler/invitation/send.html", context)
+        response.headers["Cache-Control"] = "no-store, private"
+        # Preserve the same-origin Origin header on form POSTs; no-referrer
+        # makes browsers send Origin: null, which Django correctly rejects.
+        response.headers["Referrer-Policy"] = "same-origin"
+        return response
 
 
 @admin.register(Cabin)

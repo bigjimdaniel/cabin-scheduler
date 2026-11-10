@@ -1,6 +1,35 @@
 from django import forms
+from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import UserCreationForm
 
 from .models import Reservation
+
+
+class InvitationForm(forms.Form):
+    email = forms.EmailField(label="Guest's email address")
+    delivery = forms.ChoiceField(
+        label="How would you like to share the invitation?",
+        choices=(
+            ("link", "Copy a link to share yourself"),
+            ("email", "Send by email (requires email delivery setup)"),
+        ),
+        initial="link",
+        required=False,
+        widget=forms.RadioSelect,
+    )
+
+    def clean_delivery(self):
+        return self.cleaned_data["delivery"] or "link"
+
+
+class EnrollmentForm(UserCreationForm):
+    class Meta(UserCreationForm.Meta):
+        model = get_user_model()
+        fields = ("username",)
+
+    def __init__(self, *args, email, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instance.email = email
 
 
 class ReservationRequestForm(forms.ModelForm):

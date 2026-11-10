@@ -13,6 +13,29 @@ class TimestampedModel(models.Model):
         abstract = True
 
 
+class Invitation(TimestampedModel):
+    email = models.EmailField(unique=True)
+    token_digest = models.CharField(max_length=64, unique=True, editable=False)
+    expires_at = models.DateTimeField(editable=False)
+    accepted_at = models.DateTimeField(null=True, blank=True, editable=False)
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+        related_name="sent_invitations", editable=False,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.email
+
+    @property
+    def status(self):
+        if self.accepted_at:
+            return "Accepted"
+        return "Expired" if self.expires_at <= timezone.now() else "Pending"
+
+
 class Cabin(TimestampedModel):
     name = models.CharField(max_length=120, unique=True)
     slug = models.SlugField(unique=True)

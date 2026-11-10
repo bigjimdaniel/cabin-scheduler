@@ -4,14 +4,49 @@ from dataclasses import dataclass
 from datetime import date
 
 from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import FileResponse, Http404
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, TemplateView
+from django.utils import timezone
+from django.views.decorators.cache import never_cache
+from django.views.decorators.debug import sensitive_post_parameters
+from django.views.decorators.http import require_http_methods
 
-from .forms import ReservationRequestForm
-from .models import BlackoutRange, Cabin, Document, Reservation
+from .forms import EnrollmentForm, ReservationRequestForm
+from .invitations import accept_invitation, token_digest
+from .models import BlackoutRange, Cabin, Document, Invitation, Reservation
+
+
+@sensitive_post_parameters("password1", "password2")
+@never_cache
+@require_http_methods(["GET", "POST"])
+def enroll(request, token):
+    invitation = Invitation.objects.filter(
+        token_digest=token_digest(token), accepted_at__isnull=True,
+        expires_at__gt=timezone.now(),
+    ).first()
+    form = None
+    if invitation:
+        form = EnrollmentForm(request.POST or None, email=invitation.email)
+        if request.method == "POST" and form.is_valid():
+            try:
+                accept_invitation(invitation=invitation, form=form)
+            except ValidationError as exc:
+                form.add_error(None, exc)
+            except IntegrityError:
+                form.add_error(None, "That username is no longer available. Choose another and try again.")
+            else:
+                messages.success(request, "Your account is ready. Sign in with your new username and password.")
+                return redirect("login")
+    response = render(request, "registration/enroll.html", {
+        "invitation": invitation, "form": form,
+    }, status=200 if invitation else 400)
+    response.headers["Referrer-Policy"] = "same-origin"
+    return response
 
 
 @dataclass
