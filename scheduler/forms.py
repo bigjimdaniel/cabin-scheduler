@@ -50,6 +50,15 @@ class EnrollmentForm(UserCreationForm):
         self.instance.email = email
 
 
+class ReservationDecisionForm(forms.Form):
+    decision = forms.ChoiceField(choices=(("approve", "Approve"), ("reject", "Reject")))
+    admin_notes = forms.CharField(
+        label="Admin note (optional)", required=False, max_length=5000,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="Only administrators can see this note.",
+    )
+
+
 class ReservationRequestForm(forms.ModelForm):
     class Meta:
         model = Reservation

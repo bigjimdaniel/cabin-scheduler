@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from datetime import date
 
 from django.contrib import messages
-from django.core.exceptions import ValidationError
-from django.db import IntegrityError
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import IntegrityError, transaction
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Case, IntegerField, Q, Value, When
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
@@ -18,7 +18,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods
 
-from .forms import DocumentForm, EnrollmentForm, ReservationRequestForm
+from .forms import DocumentForm, EnrollmentForm, ReservationDecisionForm, ReservationRequestForm
 from .document_files import ALLOWED_EXTENSIONS, preview_type
 from .invitations import accept_invitation, token_digest
 from .models import BlackoutRange, Cabin, Document, Invitation, Reservation
@@ -261,8 +261,51 @@ class ReservationListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = Reservation.objects.select_related("cabin", "user", "decided_by")
         if self.request.user.is_staff:
-            return queryset
+            return queryset.annotate(review_priority=Case(
+                When(status=Reservation.Status.PENDING, then=Value(0)),
+                default=Value(1), output_field=IntegerField(),
+            )).order_by("review_priority", "start_date", "created_at")
         return queryset.filter(user=self.request.user)
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def reservation_review(request, pk):
+    if not request.user.is_authenticated:
+        from django.contrib.auth.views import redirect_to_login
+        return redirect_to_login(request.get_full_path())
+    if not (request.user.is_active and request.user.is_staff and request.user.has_perm("scheduler.change_reservation")):
+        raise PermissionDenied
+
+    reservation = get_object_or_404(
+        Reservation.objects.select_related("user", "cabin", "decided_by"), pk=pk,
+    )
+    form = ReservationDecisionForm(request.POST if request.method == "POST" else None, initial={"admin_notes": reservation.admin_notes})
+    if request.method == "POST" and form.is_valid():
+        try:
+            with transaction.atomic():
+                # Serialize approvals for a cabin so two overlapping requests
+                # cannot both pass their conflict checks on PostgreSQL.
+                Cabin.objects.select_for_update().get(pk=reservation.cabin_id)
+                reservation = Reservation.objects.select_for_update().select_related("user", "cabin").get(pk=pk)
+                if reservation.status != Reservation.Status.PENDING:
+                    raise ValidationError("This request is no longer pending. Its current decision is shown below.")
+                # Claim only a still-pending request, including on SQLite.
+                claimed = Reservation.objects.filter(pk=pk, status=Reservation.Status.PENDING).update(updated_at=timezone.now())
+                if not claimed:
+                    raise ValidationError("This request has already been reviewed. Reload to see the decision.")
+                reservation.admin_notes = form.cleaned_data["admin_notes"]
+                if form.cleaned_data["decision"] == "approve":
+                    reservation.approve(decided_by=request.user)
+                else:
+                    reservation.reject(decided_by=request.user)
+        except ValidationError as exc:
+            form.add_error(None, exc.messages)
+            reservation.refresh_from_db()
+        else:
+            messages.success(request, "Reservation approved." if form.cleaned_data["decision"] == "approve" else "Reservation rejected.")
+            return redirect("reservation-review", pk=pk)
+    return render(request, "scheduler/reservation_review.html", {"reservation": reservation, "form": form})
 
 
 class DocumentListView(LoginRequiredMixin, ListView):

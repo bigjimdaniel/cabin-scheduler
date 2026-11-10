@@ -364,6 +364,21 @@ button,
     color: #8b2525;
 }
 
+.reservation-summary {
+    display: grid;
+    grid-template-columns: minmax(7rem, 1fr) 2fr;
+    gap: 0.8rem 1rem;
+}
+
+.reservation-summary dt {
+    font-weight: bold;
+}
+
+.reservation-summary dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
 .sr-only {
     position: absolute;
     width: 1px;

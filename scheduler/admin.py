@@ -6,6 +6,7 @@ from django.db import IntegrityError
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
+from django.utils.html import format_html
 from smtplib import SMTPException
 
 from .forms import DocumentForm, InvitationForm
@@ -153,6 +154,7 @@ def reject_reservations(modeladmin, request, queryset):
 
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):
+    change_form_template = "admin/scheduler/reservation/change_form.html"
     list_display = (
         "requested_by_display",
         "reserved_for",
@@ -162,6 +164,7 @@ class ReservationAdmin(admin.ModelAdmin):
         "status",
         "decided_by",
         "updated_at",
+        "review_request_link",
     )
     list_filter = ("status", "cabin")
     search_fields = ("user__username", "user__email", "guest_name", "notes", "admin_notes")
@@ -181,3 +184,10 @@ class ReservationAdmin(admin.ModelAdmin):
         "updated_at",
     )
     actions = (approve_reservations, reject_reservations)
+
+    @admin.display(description="Review")
+    def review_request_link(self, obj):
+        return format_html(
+            '<a href="{}">{}</a>', reverse("reservation-review", args=[obj.pk]),
+            "Review request" if obj.status == Reservation.Status.PENDING else "View decision",
+        )

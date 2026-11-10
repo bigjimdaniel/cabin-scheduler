@@ -7,10 +7,14 @@
     <div class="section-header">
         <div>
             <p class="eyebrow">{% if request.user.is_staff %}Admin view{% else %}My trips{% endif %}</p>
-            <h1>Reservations</h1>
+            <h1>{% if request.user.is_staff %}Reservation requests{% else %}Reservations{% endif %}</h1>
         </div>
         <a class="button" href="{% url 'reservation-create' %}">New request</a>
     </div>
+
+    {% if request.user.is_staff and perms.scheduler.change_reservation %}
+        <p>Pending requests appear first. Choose <strong>Review request</strong> to check the details and approve or reject a stay.</p>
+    {% endif %}
 
     {% if reservations %}
         <div class="table-scroll">
@@ -23,6 +27,7 @@
                         <th>Nights</th>
                         <th>Status</th>
                         <th>Notes</th>
+                        {% if request.user.is_staff and perms.scheduler.change_reservation %}<th>Review</th>{% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -34,6 +39,9 @@
                             <td>{{ reservation.nights }}</td>
                             <td><span class="status-pill status-pill--{{ reservation.status }}">{{ reservation.get_status_display }}</span></td>
                             <td>{{ reservation.notes|default:"-" }}</td>
+                            {% if request.user.is_staff and perms.scheduler.change_reservation %}
+                                <td><a class="button {% if reservation.status != 'pending' %}button-secondary{% endif %}" href="{% url 'reservation-review' reservation.pk %}">{% if reservation.status == 'pending' %}Review request{% else %}View decision{% endif %}<span class="sr-only"> for {{ reservation.reserved_for }}</span></a></td>
+                            {% endif %}
                         </tr>
                     {% endfor %}
                 </tbody>

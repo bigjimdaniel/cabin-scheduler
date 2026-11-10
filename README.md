@@ -47,8 +47,14 @@ Cabin Scheduler is a Django app for managing reservation requests for a shared c
 - Invited users authenticate with Django’s built-in auth.
 - Authenticated users can browse the calendar and request stays.
 - Requests start as `pending`.
-- Staff approve or reject requests in `/admin/`.
+- Authorized staff approve or reject requests through **Review requests** at `/reservations/` (also linked from Django Admin).
 - Approved reservations and blackout ranges block conflicting dates.
+
+### Reviewing reservation requests
+
+Administrators with the **change reservation** permission open **Review requests** in the site navigation (`/reservations/`). Pending requests appear first. Click **Review request** to see the requester, guest, cabin, check-in/check-out dates, number of nights, and guest notes. Add an optional private admin note and choose **Approve request** or **Reject request**. Approval checks approved bookings and blackout dates before reserving the stay; conflicts appear on the review screen.
+
+Completed requests show **View decision**, including who reviewed them and when. The review screen only decides pending requests, so repeated or stale submissions cannot overwrite an existing decision. Guests see their reservation status in **My Reservations**; private admin notes stay hidden and no automatic decision emails are sent. Django Admin also includes explicit **Review request** links in the reservation list and **Review and decide** on the edit screen.
 
 ## Key Routes
 

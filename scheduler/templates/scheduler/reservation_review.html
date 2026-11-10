@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Review reservation | Daniel Dream{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+    <p class="eyebrow">Reservation #{{ reservation.pk }}</p>
+    <div class="section-header">
+        <h1>Review request</h1>
+        <span class="status-pill status-pill--{{ reservation.status }}">{{ reservation.get_status_display }}</span>
+    </div>
+    <dl class="reservation-summary">
+        <dt>Requested by</dt><dd>{{ reservation.requested_by_display }}</dd>
+        <dt>Guest staying</dt><dd>{{ reservation.reserved_for }}</dd>
+        <dt>Cabin</dt><dd>{{ reservation.cabin }}</dd>
+        <dt>Check-in</dt><dd>{{ reservation.start_date|date:"l, M j, Y" }}</dd>
+        <dt>Check-out</dt><dd>{{ reservation.end_date|date:"l, M j, Y" }}</dd>
+        <dt>Nights</dt><dd>{{ reservation.nights }}</dd>
+        <dt>Guest notes</dt><dd>{{ reservation.notes|default:"No notes provided."|linebreaksbr }}</dd>
+    </dl>
+    {% if reservation.status == 'pending' %}
+        <p><a href="{% url 'calendar' %}?year={{ reservation.start_date.year }}&amp;month={{ reservation.start_date.month }}">Check the availability calendar</a></p>
+        <form method="post" class="stack-form">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            {{ form.decision.errors }}
+            {{ form.admin_notes.errors }}
+            <p>{{ form.admin_notes.label_tag }}{{ form.admin_notes }}<span class="muted">{{ form.admin_notes.help_text }}</span></p>
+            <p>Approval reserves these dates. Conflicting bookings or blackout dates will prevent approval.</p>
+            <div class="document-toolbar">
+                <button type="submit" name="decision" value="approve">Approve request</button>
+                <button type="submit" name="decision" value="reject" class="button-danger">Reject request</button>
+            </div>
+        </form>
+    {% else %}
+        {{ form.non_field_errors }}
+        <p>This request is <strong>{{ reservation.get_status_display|lower }}</strong>.</p>
+        {% if reservation.decided_by %}<p>Reviewed by {{ reservation.decided_by.get_full_name|default:reservation.decided_by.username }} on {{ reservation.decided_at|date:"M j, Y, g:i a" }}.</p>{% endif %}
+        {% if reservation.admin_notes %}<h2>Admin note</h2><p>{{ reservation.admin_notes|linebreaksbr }}</p>{% endif %}
+    {% endif %}
+    <p><a href="{% url 'reservation-list' %}">Back to requests</a></p>
+</section>
+{% endblock %}
