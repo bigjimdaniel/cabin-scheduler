@@ -8,7 +8,7 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 from smtplib import SMTPException
 
-from .forms import InvitationForm
+from .forms import DocumentForm, InvitationForm
 from .invitations import create_invitation, send_invitation
 from .models import BlackoutRange, Cabin, Document, Invitation, Reservation
 
@@ -105,13 +105,16 @@ class BlackoutRangeAdmin(admin.ModelAdmin):
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-    list_display = ("title", "filename", "uploaded_by_display", "created_at")
+    form = DocumentForm
+    list_display = ("title", "filename", "is_published", "uploaded_by_display", "updated_at")
+    list_filter = ("is_published",)
     search_fields = ("title", "description", "file", "uploaded_by__username")
     readonly_fields = ("created_at", "updated_at")
     fields = (
         "title",
         "description",
         "file",
+        "is_published",
         "uploaded_by",
         "created_at",
         "updated_at",

@@ -9,12 +9,21 @@
             <p class="eyebrow">Shared files</p>
             <h1>Documents</h1>
         </div>
-        {% if request.user.is_staff %}
-            <a class="button" href="/admin/scheduler/document/">Manage in Admin</a>
+        {% if request.user.is_staff and perms.scheduler.add_document %}
+            <a class="button" href="{% url 'document-create' %}">Upload document</a>
         {% endif %}
     </div>
 
-    <p class="muted">Admins can upload cabin-related files here. Logged-in users can open or download them.</p>
+    <p class="muted">Cabin guides, forms, and other shared files. Open PDFs and images, or download documents to your device.</p>
+
+    <form method="get" class="document-search" role="search">
+        <label for="document-search">Search documents</label>
+        <div class="document-toolbar">
+            <input id="document-search" type="search" name="q" value="{{ query }}" maxlength="200" placeholder="Title, description, or filename">
+            <button type="submit">Search</button>
+            {% if query %}<a href="{% url 'document-list' %}">Clear</a>{% endif %}
+        </div>
+    </form>
 
     {% if documents %}
         <div class="table-scroll">
@@ -23,8 +32,8 @@
                     <tr>
                         <th>Title</th>
                         <th>File</th>
-                        <th>Uploaded By</th>
-                        <th>Added</th>
+                        <th>Type / Size</th>
+                        <th>Updated</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -33,17 +42,26 @@
                         <tr>
                             <td>
                                 <strong>{{ document.title }}</strong>
+                                {% if not document.is_published %}<span class="document-status">Unpublished</span>{% endif %}
                                 {% if document.description %}
                                     <div class="muted">{{ document.description }}</div>
                                 {% endif %}
                             </td>
                             <td>{{ document.filename }}</td>
-                            <td>{{ document.uploaded_by_display }}</td>
-                            <td>{{ document.created_at|date:"M j, Y" }}</td>
                             <td>
-                                <a href="{% url 'document-file' document.pk %}">Open</a>
-                                |
-                                <a href="{% url 'document-file' document.pk %}?download=1">Download</a>
+                                {{ document.file_type }}
+                                <div class="muted">{% if document.file_size != None %}{{ document.file_size|filesizeformat }}{% else %}File unavailable{% endif %}</div>
+                            </td>
+                            <td>{{ document.updated_at|date:"M j, Y" }}</td>
+                            <td>
+                                <div class="document-actions">
+                                    {% if document.can_preview %}<a href="{% url 'document-file' document.pk %}" target="_blank" rel="noopener">Open<span class="sr-only"> {{ document.title }} in a new tab</span></a>{% endif %}
+                                    <a href="{% url 'document-file' document.pk %}?download=1">Download<span class="sr-only"> {{ document.title }}</span></a>
+                                    {% if request.user.is_staff %}
+                                        {% if perms.scheduler.change_document %}<a href="{% url 'document-update' document.pk %}">Edit<span class="sr-only"> {{ document.title }}</span></a>{% endif %}
+                                        {% if perms.scheduler.delete_document %}<a href="{% url 'document-delete' document.pk %}" class="text-danger">Delete<span class="sr-only"> {{ document.title }}</span></a>{% endif %}
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
@@ -51,7 +69,14 @@
             </table>
         </div>
     {% else %}
-        <p class="muted">No documents have been uploaded yet.</p>
+        {% if query %}<p class="muted">No documents match your search.</p>{% else %}<p class="muted">No shared documents yet.</p>{% endif %}
+    {% endif %}
+    {% if is_paginated %}
+        <nav class="document-toolbar" aria-label="Document pages">
+            {% if page_obj.has_previous %}<a href="?{{ query_string }}&amp;page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+            <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+            {% if page_obj.has_next %}<a href="?{{ query_string }}&amp;page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+        </nav>
     {% endif %}
 </section>
 {% endblock %}

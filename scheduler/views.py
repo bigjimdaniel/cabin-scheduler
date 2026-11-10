@@ -6,17 +6,20 @@ from datetime import date
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.conf import settings
+from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, ListView, TemplateView
+from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods
 
-from .forms import EnrollmentForm, ReservationRequestForm
+from .forms import DocumentForm, EnrollmentForm, ReservationRequestForm
+from .document_files import ALLOWED_EXTENSIONS, preview_type
 from .invitations import accept_invitation, token_digest
 from .models import BlackoutRange, Cabin, Document, Invitation, Reservation
 
@@ -265,20 +268,104 @@ class ReservationListView(LoginRequiredMixin, ListView):
 class DocumentListView(LoginRequiredMixin, ListView):
     template_name = "scheduler/document_list.html"
     context_object_name = "documents"
-    queryset = Document.objects.select_related("uploaded_by")
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = visible_documents(self.request.user).select_related("uploaded_by")
+        self.query = self.request.GET.get("q", "").strip()[:200]
+        if self.query:
+            queryset = queryset.filter(
+                Q(title__icontains=self.query) | Q(description__icontains=self.query)
+                | Q(file__icontains=self.query)
+            )
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["query"] = self.query
+        context["query_string"] = self.request.GET.copy()
+        context["query_string"].pop("page", None)
+        context["query_string"] = context["query_string"].urlencode()
+        return context
+
+
+def visible_documents(user):
+    queryset = Document.objects.all()
+    if user.is_active and user.is_staff and any(
+        user.has_perm(f"scheduler.{action}_document")
+        for action in ("view", "add", "change", "delete")
+    ):
+        return queryset
+    return queryset.filter(is_published=True)
+
+
+class DocumentManagementMixin(LoginRequiredMixin, PermissionRequiredMixin):
+    model = Document
+    success_url = reverse_lazy("document-list")
+
+    def has_permission(self):
+        return self.request.user.is_active and self.request.user.is_staff and super().has_permission()
+
+
+class DocumentFormMixin:
+    form_class = DocumentForm
+    template_name = "scheduler/document_form.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["max_upload_mb"] = f"{settings.DOCUMENT_MAX_UPLOAD_BYTES / (1024 * 1024):g}"
+        context["allowed_extensions"] = ", ".join(extension.upper() for extension in ALLOWED_EXTENSIONS)
+        return context
+
+
+class DocumentCreateView(DocumentManagementMixin, DocumentFormMixin, CreateView):
+    permission_required = "scheduler.add_document"
+
+    def form_valid(self, form):
+        form.instance.uploaded_by = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, "Document uploaded." if self.object.is_published else "Document saved as unpublished.")
+        return response
+
+
+class DocumentUpdateView(DocumentManagementMixin, DocumentFormMixin, UpdateView):
+    permission_required = "scheduler.change_document"
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Document updated.")
+        return response
+
+
+class DocumentDeleteView(DocumentManagementMixin, DeleteView):
+    permission_required = "scheduler.delete_document"
+    template_name = "scheduler/document_confirm_delete.html"
+    http_method_names = ["get", "post", "head", "options"]
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Document deleted.")
+        return response
 
 
 class DocumentFileView(LoginRequiredMixin, TemplateView):
     http_method_names = ["get"]
 
     def get(self, request, *args, **kwargs):
-        document = get_object_or_404(Document, pk=kwargs["pk"])
-        as_attachment = request.GET.get("download") == "1"
-        content_type, _ = mimetypes.guess_type(document.file.name)
+        document = get_object_or_404(visible_documents(request.user), pk=kwargs["pk"])
+        preview_content_type = preview_type(document.filename)
+        as_attachment = request.GET.get("download") == "1" or not preview_content_type
+        content_type = preview_content_type or mimetypes.guess_type(document.filename)[0]
+        try:
+            file = document.file.open("rb")
+        except (OSError, ValueError):
+            raise Http404("This file is unavailable. Please contact the site administrator.")
         response = FileResponse(
-            document.file.open("rb"),
+            file,
             as_attachment=as_attachment,
             filename=document.filename,
             content_type=content_type or "application/octet-stream",
         )
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
         return response

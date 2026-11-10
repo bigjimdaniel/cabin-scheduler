@@ -112,6 +112,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+DOCUMENT_MAX_UPLOAD_BYTES = int(os.getenv("DOCUMENT_MAX_UPLOAD_BYTES", str(20 * 1024 * 1024)))
 staticfiles_backend = (
     "django.contrib.staticfiles.storage.StaticFilesStorage"
     if DEBUG

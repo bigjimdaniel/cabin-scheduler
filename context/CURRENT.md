@@ -1,5 +1,8 @@
 # Current work
 
+- Completed shared document management: in-site upload/edit/replace/delete, publish/unpublish, search/pagination, file type/size metadata, extension/empty/20 MB configurable size validation, per-action staff permission checks, private downloads, and commit-safe replaced/deleted file cleanup (including Django Admin). Published files shared with all active authenticated users; no per-user ACLs or online Office editing. Migration 0007 applied locally; existing documents remain published.
+- Verification: all 68 tests passed (22 new document tests), and all 22 document tests passed again after final review. Browser verified draft upload, edit/replacement/publication and delete confirmation; verified replaced file cleanup and removed temporary test upload. Existing document retained. No public media route added. git diff --check and migration consistency checks clean.
+- Local dev server restarted with auto reload after verification. Document settings/deployment instructions added to README and environment examples. No commit/push performed for this feature.
 - Implement enrollment invitations: admin supplies email, creates a copyable link by default, and recipient chooses username/password. Email sending remains optional.
 - Existing local SQLite database and Python environment are set up; all original 23 migrations applied. Do not reset data or recreate users.
 - Preserve pre-existing user change in deploy/nginx.conf.

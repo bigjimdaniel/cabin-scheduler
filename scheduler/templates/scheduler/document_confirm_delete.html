@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Delete document | Daniel Dream{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+    <p class="eyebrow">Shared files</p>
+    <h1>Delete document?</h1>
+    <p>This will permanently remove <strong>{{ object.title }}</strong> ({{ object.filename }}) and its stored file. Users will no longer be able to download it.</p>
+    <form method="post" class="document-toolbar">
+        {% csrf_token %}
+        <button type="submit" class="button-danger">Delete document</button>
+        <a href="{% url 'document-list' %}">Cancel</a>
+    </form>
+</section>
+{% endblock %}

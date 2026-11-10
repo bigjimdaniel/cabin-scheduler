@@ -2,7 +2,25 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 
-from .models import Reservation
+from .document_files import ALLOWED_EXTENSIONS
+from .models import Document, Reservation
+
+
+class DocumentForm(forms.ModelForm):
+    class Meta:
+        model = Document
+        fields = ("title", "description", "file", "is_published")
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 3}),
+            "file": forms.FileInput(attrs={
+                "accept": ",".join(f".{extension}" for extension in ALLOWED_EXTENSIONS),
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields["file"].help_text = "Choose a new file to replace the current one, or leave this blank to keep it."
 
 
 class InvitationForm(forms.Form):

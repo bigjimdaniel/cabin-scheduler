@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Edit document{% else %}Upload document{% endif %} | Daniel Dream{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+    <p class="eyebrow">Shared files</p>
+    <h1>{% if object %}Edit document{% else %}Upload document{% endif %}</h1>
+    <p>Share files with signed-in cabin guests. Maximum file size: {{ max_upload_mb }} MB.</p>
+    <p class="muted">Supported files: {{ allowed_extensions }}.</p>
+    {% if object %}
+        <p>Current file: <a href="{% url 'document-file' object.pk %}?download=1">{{ object.filename }}</a></p>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data" class="stack-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="document-toolbar">
+            <button type="submit">{% if object %}Save changes{% else %}Upload document{% endif %}</button>
+            <a href="{% url 'document-list' %}">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

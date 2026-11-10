@@ -60,6 +60,16 @@ Cabin Scheduler is a Django app for managing reservation requests for a shared c
 
 ## Environment
 
+### Shared documents
+
+Signed-in users can browse and search the shared library at `/documents/`. Staff with the appropriate Django document permissions can upload, edit, replace, publish/unpublish, and delete files directly from this page. Superusers have these permissions automatically. Deletion requires confirmation; unpublished documents are visible only to staff with document permissions. Existing documents remain published after upgrading.
+
+Supported uploads: Word (`.doc`, `.docx`), Excel (`.xls`, `.xlsx`), PowerPoint (`.ppt`, `.pptx`), PDF, TXT, CSV, JPG/JPEG, PNG, GIF, and WebP. The configurable per-file limit defaults to 20 MB (`DOCUMENT_MAX_UPLOAD_BYTES=20971520`). Uploads are checked for allowed filename extensions, non-empty content, and file size. PDFs and supported images can open in a new browser tab; other files download for opening on the user's device.
+
+Files are stored in `media/` and served through authenticated document URLs. Do not expose `/media/` directly through Nginx or a public storage bucket: that would bypass publication and login checks. Include `media/` in backups along with the database. Replaced/deleted files are removed after the database transaction commits, including deletions made through Django Admin. The original uploader is retained when editing a document. If file cleanup fails, Django logs the failure; retain server logs for troubleshooting.
+
+Apply database changes with `uv run python manage.py migrate` when deploying. The bundled Nginx configuration allows 25 MB requests to accommodate a 20 MB file plus form data; if increasing the upload limit, increase Nginx's `client_max_body_size` accordingly.
+
 ### Invitation and password-reset email
 
 Copyable invitation links require no email backend. Use the site's public address when creating links for other people, or configure `SITE_URL` to that address; localhost links are only usable on your own laptop. Password resets still require email delivery.

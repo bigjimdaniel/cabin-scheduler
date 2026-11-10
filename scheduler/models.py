@@ -1,8 +1,11 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 from django.db import models, transaction
 from django.utils import timezone
 from pathlib import Path
+
+from .document_files import ALLOWED_EXTENSIONS, preview_type, validate_document_size
 
 
 class TimestampedModel(models.Model):
@@ -90,7 +93,13 @@ class BlackoutRange(TimestampedModel):
 class Document(TimestampedModel):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    file = models.FileField(upload_to="documents/%Y/%m/")
+    file = models.FileField(
+        upload_to="documents/%Y/%m/",
+        validators=[FileExtensionValidator(ALLOWED_EXTENSIONS), validate_document_size],
+    )
+    is_published = models.BooleanField(
+        default=True, help_text="Published files are available to all signed-in users.",
+    )
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -108,6 +117,21 @@ class Document(TimestampedModel):
     @property
     def filename(self) -> str:
         return Path(self.file.name).name
+
+    @property
+    def file_type(self):
+        return Path(self.file.name).suffix.lstrip(".").upper()
+
+    @property
+    def file_size(self):
+        try:
+            return self.file.size
+        except (OSError, ValueError):
+            return None
+
+    @property
+    def can_preview(self):
+        return preview_type(self.file.name) is not None
 
     @property
     def uploaded_by_display(self) -> str:
