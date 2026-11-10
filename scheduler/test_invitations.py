@@ -30,7 +30,7 @@ class InvitationTests(TestCase):
         return invitation, urlsplit(url).path
 
     def payload(self, **kwargs):
-        return {"username": "newguest", "password1": "Cabin!92-Blue-Sky", "password2": "Cabin!92-Blue-Sky", **kwargs}
+        return {"first_name": "Casey", "last_name": "Guest", "username": "newguest", "password1": "Cabin!92-Blue-Sky", "password2": "Cabin!92-Blue-Sky", **kwargs}
 
     def test_admin_sends_invitation_without_creating_account(self):
         self.client.force_login(self.admin)
@@ -54,6 +54,8 @@ class InvitationTests(TestCase):
         response = self.client.post(url, self.payload(email="attacker@example.com", is_staff="1"))
         self.assertRedirects(response, reverse("login"))
         user = User.objects.get(username="newguest")
+        self.assertEqual(user.first_name, "Casey")
+        self.assertEqual(user.last_name, "Guest")
         self.assertEqual(user.email, invitation.email)
         self.assertTrue(user.check_password("Cabin!92-Blue-Sky"))
         self.assertFalse(user.is_staff)
@@ -61,6 +63,29 @@ class InvitationTests(TestCase):
         invitation.refresh_from_db()
         self.assertIsNotNone(invitation.accepted_at)
         self.assertTrue(self.client.login(username="newguest", password="Cabin!92-Blue-Sky"))
+
+    def test_enrollment_requires_both_names_and_leaves_invitation_available(self):
+        invitation, url = self.send()
+        for field, value in (("first_name", ""), ("last_name", ""), ("first_name", "   "), ("last_name", "x" * 151)):
+            with self.subTest(field=field, value=value):
+                response = self.client.post(url, self.payload(**{field: value}))
+                self.assertIn(field, response.context["form"].errors)
+        invitation.refresh_from_db()
+        self.assertIsNone(invitation.accepted_at)
+        self.assertFalse(User.objects.filter(username="newguest").exists())
+
+    def test_enrollment_preserves_international_names_and_strips_surrounding_spaces(self):
+        _, url = self.send()
+        self.assertRedirects(self.client.post(url, self.payload(first_name="  María-José  ", last_name="  O’Neill 王  ")), reverse("login"))
+        user = User.objects.get(username="newguest")
+        self.assertEqual(user.first_name, "María-José")
+        self.assertEqual(user.last_name, "O’Neill 王")
+
+    def test_enrollment_page_displays_name_fields_with_autofill(self):
+        _, url = self.send()
+        response = self.client.get(url)
+        for text in ('name="first_name"', 'name="last_name"', 'autocomplete="given-name"', 'autocomplete="family-name"'):
+            self.assertContains(response, text)
 
     def test_invitation_cannot_be_reused(self):
         _, url = self.send()

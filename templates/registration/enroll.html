@@ -5,7 +5,7 @@
     {% if invitation %}
         <h1>Create your account</h1>
         <p>Welcome to Daniel Dream! This invitation is for <strong>{{ invitation.email }}</strong>.</p>
-        <p>Choose your username and password to start planning your stays.</p>
+        <p>Enter your first and last name, then choose your username and password to start planning your stays.</p>
         <form method="post" class="stack-form">
             {% csrf_token %}
             {{ form.as_p }}

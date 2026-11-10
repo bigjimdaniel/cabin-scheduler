@@ -41,9 +41,18 @@ class InvitationForm(forms.Form):
 
 
 class EnrollmentForm(UserCreationForm):
+    first_name = forms.CharField(
+        label="First name", max_length=150,
+        widget=forms.TextInput(attrs={"autocomplete": "given-name"}),
+    )
+    last_name = forms.CharField(
+        label="Last name", max_length=150,
+        widget=forms.TextInput(attrs={"autocomplete": "family-name"}),
+    )
+
     class Meta(UserCreationForm.Meta):
         model = get_user_model()
-        fields = ("username",)
+        fields = ("first_name", "last_name", "username")
 
     def __init__(self, *args, email, **kwargs):
         super().__init__(*args, **kwargs)
