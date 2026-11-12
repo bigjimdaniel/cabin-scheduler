@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Daniel Dream{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=3">
 </head>
 <body>
     <header class="site-header">
@@ -31,6 +31,7 @@
                     <a href="{% url 'reservation-list' %}">{% if request.user.is_staff and perms.scheduler.change_reservation %}Review requests{% else %}My Reservations{% endif %}</a>
                     <a href="{% url 'reservation-create' %}">Request Stay</a>
                     {% if request.user.is_staff %}
+                        {% if perms.scheduler.view_carouselphoto or perms.scheduler.add_carouselphoto or perms.scheduler.change_carouselphoto or perms.scheduler.delete_carouselphoto %}<a href="{% url 'photo-list' %}">Manage photos</a>{% endif %}
                         <a href="/admin/">Admin</a>
                     {% endif %}
                     {% if request.user.is_authenticated %}

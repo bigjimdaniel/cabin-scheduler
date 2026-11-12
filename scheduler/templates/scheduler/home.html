@@ -9,32 +9,29 @@
             <h1>Daniel Dream</h1>
             <p class="muted">{{ cabin.name }}</p>
             <p>{{ cabin.description|default:"A simple home base for viewing availability and requesting stays." }}</p>
-            <section class="carousel panel" aria-label="Cabin photo gallery" data-carousel data-carousel-interval="5000" tabindex="0">
-                <div class="carousel-stage">
-                    <div class="carousel-slide is-active" data-carousel-slide aria-hidden="false">
-                        <img src="{% static 'img/home-carousel/cabin1.jpg' %}" alt="Cabin exterior view" loading="eager">
+            {% if request.user.is_staff %}
+                {% if perms.scheduler.view_carouselphoto or perms.scheduler.add_carouselphoto or perms.scheduler.change_carouselphoto or perms.scheduler.delete_carouselphoto %}
+                    <p><a class="button button-secondary" href="{% url 'photo-list' %}">Manage carousel photos</a></p>
+                {% endif %}
+            {% endif %}
+            {% if carousel_photos %}
+                <section class="carousel panel" aria-label="Cabin photo gallery" data-carousel data-carousel-interval="5000" tabindex="0">
+                    <div class="carousel-stage">
+                        {% for photo in carousel_photos %}
+                            <div class="carousel-slide{% if forloop.first %} is-active{% endif %}" data-carousel-slide aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}" {% if not forloop.first %}hidden{% endif %}>
+                                <img src="{% url 'photo-image' photo.pk %}" alt="{{ photo.alt_text }}" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
+                            </div>
+                        {% endfor %}
                     </div>
-                    <div class="carousel-slide" data-carousel-slide aria-hidden="true" hidden>
-                        <img src="{% static 'img/home-carousel/cabin2.jpg' %}" alt="Cabin surrounded by trees" loading="lazy">
-                    </div>
-                    <div class="carousel-slide" data-carousel-slide aria-hidden="true" hidden>
-                        <img src="{% static 'img/home-carousel/cabin3.jpg' %}" alt="Cabin porch and outdoor setting" loading="lazy">
-                    </div>
-                    <div class="carousel-slide" data-carousel-slide aria-hidden="true" hidden>
-                        <img src="{% static 'img/home-carousel/cabin4.jpg' %}" alt="Cabin view from the path" loading="lazy">
-                    </div>
-                    <div class="carousel-slide" data-carousel-slide aria-hidden="true" hidden>
-                        <img src="{% static 'img/home-carousel/cabin5.jpg' %}" alt="Cabin landscape scene" loading="lazy">
-                    </div>
-                </div>
-                <div class="carousel-indicators" aria-label="Select photo">
-                    <button type="button" class="carousel-indicator is-active" data-carousel-indicator data-slide-to="0" aria-label="Show photo 1" aria-current="true"></button>
-                    <button type="button" class="carousel-indicator" data-carousel-indicator data-slide-to="1" aria-label="Show photo 2" aria-current="false"></button>
-                    <button type="button" class="carousel-indicator" data-carousel-indicator data-slide-to="2" aria-label="Show photo 3" aria-current="false"></button>
-                    <button type="button" class="carousel-indicator" data-carousel-indicator data-slide-to="3" aria-label="Show photo 4" aria-current="false"></button>
-                    <button type="button" class="carousel-indicator" data-carousel-indicator data-slide-to="4" aria-label="Show photo 5" aria-current="false"></button>
-                </div>
-            </section>
+                    {% if carousel_photos|length > 1 %}
+                        <div class="carousel-indicators" aria-label="Select photo">
+                            {% for photo in carousel_photos %}
+                                <button type="button" class="carousel-indicator{% if forloop.first %} is-active{% endif %}" data-carousel-indicator data-slide-to="{{ forloop.counter0 }}" aria-label="Show photo {{ forloop.counter }}" aria-current="{% if forloop.first %}true{% else %}false{% endif %}"></button>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </section>
+            {% endif %}
             {% if cabin.location %}
                 <p class="muted">Location: {{ cabin.location }}</p>
             {% endif %}
@@ -87,5 +84,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/home-carousel.js' %}" defer></script>
+<script src="{% static 'js/home-carousel.js' %}?v=2" defer></script>
 {% endblock %}

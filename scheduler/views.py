@@ -21,7 +21,7 @@ from django.views.decorators.http import require_http_methods
 from .forms import DocumentForm, EnrollmentForm, ReservationDecisionForm, ReservationRequestForm
 from .document_files import ALLOWED_EXTENSIONS, preview_type
 from .invitations import accept_invitation, token_digest
-from .models import BlackoutRange, Cabin, Document, Invitation, Reservation
+from .models import BlackoutRange, Cabin, CarouselPhoto, Document, Invitation, Reservation
 
 
 @sensitive_post_parameters("password1", "password2")
@@ -191,6 +191,7 @@ class HomeView(TemplateView):
         today = date.today()
         context["cabin"] = cabin
         context["today"] = today
+        context["carousel_photos"] = CarouselPhoto.objects.filter(is_active=True)
         if cabin:
             context["upcoming_reservations"] = cabin.reservations.filter(
                 status=Reservation.Status.APPROVED,

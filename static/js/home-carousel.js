@@ -42,6 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const start = () => {
             stop();
+            if (slides.length < 2) return;
             timerId = window.setInterval(() => render(currentIndex + 1), intervalMs);
         };
 

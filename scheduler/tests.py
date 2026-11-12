@@ -237,8 +237,10 @@ class ReservationViewTests(TestCase):
         response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-carousel')
-        self.assertContains(response, "img/home-carousel/cabin1")
-        self.assertContains(response, "img/home-carousel/cabin5")
+        photos = list(response.context["carousel_photos"])
+        self.assertEqual(len(photos), 5)
+        self.assertContains(response, reverse("photo-image", args=[photos[0].pk]))
+        self.assertContains(response, reverse("photo-image", args=[photos[-1].pk]))
         self.assertContains(response, "Show photo 5")
 
     def test_home_page_renders_hamburger_menu(self):

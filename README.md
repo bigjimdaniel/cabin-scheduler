@@ -66,6 +66,16 @@ Completed requests show **View decision**, including who reviewed them and when.
 
 ## Environment
 
+### Homepage carousel photos
+
+Administrators open **Manage photos** in the navigation or **Manage carousel photos** on the homepage (`/photos/manage/`). The manager provides image previews, upload, edit/replace, **Earlier/Later** ordering controls, **Hide/Show**, and confirmed deletion. Changes take effect on the homepage immediately, without redeploying. Titles are optional; untitled photos use their filename in the manager. There is no alt-text input: the carousel uses the title when supplied, or “Cabin photo” otherwise. Hidden photos stay in the manager for later use. Staff need the appropriate Django carousel-photo permissions; superusers have them automatically. The same collection can also be managed in Django Admin.
+
+Uploads accept real JPG, PNG, and WebP images, up to 10 MB and 40 megapixels. Set `CAROUSEL_MAX_UPLOAD_BYTES` to adjust the byte limit. Photos marked **Show on homepage** are public; hidden image URLs require an authorized staff session. Uploaded photos live under `media/carousel/` and are served through a dedicated photo endpoint; keep `/media/` private so document access controls remain enforced. Include `media/` in backups. Replaced/deleted uploads are cleaned up after the database change commits.
+
+Migration `0008` registers the five existing carousel photos in their original order using the bundled static images; it does not copy files or remove the originals. Replacing one switches it to an uploaded image. Hiding or deleting every photo hides the carousel entirely. A single visible photo displays without navigation dots or an autoplay timer.
+
+When deploying this feature, run `uv sync --locked` to install Pillow, then `uv run python manage.py migrate`, collect static files, and restart the app (the existing deployment script handles these steps).
+
 ### Shared documents
 
 Signed-in users can browse and search the shared library at `/documents/`. Staff with the appropriate Django document permissions can upload, edit, replace, publish/unpublish, and delete files directly from this page. Superusers have these permissions automatically. Deletion requires confirmation; unpublished documents are visible only to staff with document permissions. Existing documents remain published after upgrading.

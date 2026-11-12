@@ -9,9 +9,26 @@ from django.urls import reverse
 from django.utils.html import format_html
 from smtplib import SMTPException
 
-from .forms import DocumentForm, InvitationForm
+from .forms import CarouselPhotoForm, DocumentForm, InvitationForm
 from .invitations import create_invitation, send_invitation
-from .models import BlackoutRange, Cabin, Document, Invitation, Reservation
+from .models import BlackoutRange, Cabin, CarouselPhoto, Document, Invitation, Reservation
+
+
+@admin.register(CarouselPhoto)
+class CarouselPhotoAdmin(admin.ModelAdmin):
+    form = CarouselPhotoForm
+    list_display = ("display_title", "thumbnail", "position", "is_active")
+    list_editable = ("position", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("title", "image")
+    readonly_fields = ("thumbnail", "created_at", "updated_at")
+    fields = ("title", "thumbnail", "image", "position", "is_active", "created_at", "updated_at")
+
+    @admin.display(description="Preview")
+    def thumbnail(self, obj):
+        if not obj.pk:
+            return "Upload a photo to see its preview."
+        return format_html('<img src="{}" alt="{}" width="96" height="64" style="object-fit:cover">', reverse("photo-image", args=[obj.pk]), obj.alt_text)
 
 
 @admin.register(Invitation)

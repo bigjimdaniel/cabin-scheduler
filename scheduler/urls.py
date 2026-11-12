@@ -1,4 +1,5 @@
 from django.urls import path
+from .photo_views import PhotoCreateView, PhotoDeleteView, PhotoListView, PhotoUpdateView, photo_action, photo_image
 
 from .views import (
     CalendarView,
@@ -15,6 +16,12 @@ from .views import (
 
 
 urlpatterns = [
+    path("photos/manage/", PhotoListView.as_view(), name="photo-list"),
+    path("photos/manage/new/", PhotoCreateView.as_view(), name="photo-create"),
+    path("photos/manage/<int:pk>/edit/", PhotoUpdateView.as_view(), name="photo-update"),
+    path("photos/manage/<int:pk>/delete/", PhotoDeleteView.as_view(), name="photo-delete"),
+    path("photos/manage/<int:pk>/action/", photo_action, name="photo-action"),
+    path("photos/<int:pk>/image/", photo_image, name="photo-image"),
     path("", HomeView.as_view(), name="home"),
     path("calendar/", CalendarView.as_view(), name="calendar"),
     path("documents/", DocumentListView.as_view(), name="document-list"),

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Delete carousel photo | Daniel Dream{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+    <p class="eyebrow">Homepage gallery</p><h1>Delete photo?</h1>
+    <img class="photo-form-preview" src="{% url 'photo-image' object.pk %}" alt="{{ object.alt_text }}">
+    <p>Remove <strong>{{ object.display_title }}</strong> from the carousel? Uploaded files will be permanently deleted. You can hide the photo instead to keep it for later.</p>
+    <form method="post" class="document-toolbar">
+        {% csrf_token %}<button type="submit" class="button-danger">Delete photo</button>
+        <a href="{% url 'photo-list' %}">Cancel</a>
+    </form>
+</section>
+{% endblock %}

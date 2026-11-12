@@ -3,7 +3,24 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 
 from .document_files import ALLOWED_EXTENSIONS
-from .models import Document, Reservation
+from .models import CarouselPhoto, Document, Reservation
+
+
+class CarouselPhotoForm(forms.ModelForm):
+    class Meta:
+        model = CarouselPhoto
+        fields = ("title", "image", "is_active")
+        widgets = {"image": forms.FileInput(attrs={"accept": ".jpg,.jpeg,.png,.webp"})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["title"].label = "Title (optional)"
+        self.fields["image"].required = not (self.instance.image or self.instance.legacy_image)
+        self.fields["image"].help_text = "JPG, PNG, or WebP. Leave blank when editing to keep the current photo."
+
+
+class CarouselPhotoActionForm(forms.Form):
+    action = forms.ChoiceField(choices=[(value, value) for value in ("up", "down", "show", "hide")])
 
 
 class DocumentForm(forms.ModelForm):

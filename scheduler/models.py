@@ -6,6 +6,7 @@ from django.utils import timezone
 from pathlib import Path
 
 from .document_files import ALLOWED_EXTENSIONS, preview_type, validate_document_size
+from .photo_files import validate_carousel_image
 
 
 class TimestampedModel(models.Model):
@@ -139,6 +140,35 @@ class Document(TimestampedModel):
             return "Unknown"
         full_name = self.uploaded_by.get_full_name().strip()
         return full_name or self.uploaded_by.get_username()
+
+
+class CarouselPhoto(TimestampedModel):
+    title = models.CharField(max_length=150, blank=True)
+    image = models.ImageField(upload_to="carousel/%Y/%m/", blank=True, validators=[validate_carousel_image])
+    # Initial gallery photos stay in the bundled static assets; replacements use uploaded images.
+    legacy_image = models.CharField(max_length=100, blank=True, editable=False)
+    position = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True, verbose_name="Show on homepage")
+
+    class Meta:
+        ordering = ["position", "pk"]
+        verbose_name = "carousel photo"
+
+    def __str__(self):
+        return self.display_title
+
+    @property
+    def display_title(self):
+        return self.title.strip() or Path(self.image.name or self.legacy_image).name or "Photo"
+
+    @property
+    def alt_text(self):
+        return self.title.strip() or "Cabin photo"
+
+    def clean(self):
+        super().clean()
+        if not self.image and not self.legacy_image:
+            raise ValidationError({"image": "Choose a photo to upload."})
 
 
 class Reservation(TimestampedModel):

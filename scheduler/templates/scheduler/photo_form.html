@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Edit photo{% else %}Upload photo{% endif %} | Daniel Dream{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+    <p class="eyebrow">Homepage gallery</p>
+    <h1>{% if object %}Edit / Replace photo{% else %}Upload photo{% endif %}</h1>
+    <p>JPG, PNG, or WebP, up to {{ max_upload_mb }} MB and 40 megapixels. Landscape photos work best in the carousel.</p>
+    {% if object %}<img class="photo-form-preview" src="{% url 'photo-image' object.pk %}" alt="{{ object.alt_text }}">{% endif %}
+    <form method="post" enctype="multipart/form-data" class="stack-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <p>Photos marked “Show on homepage” are visible to everyone who visits the site.</p>
+        <div class="document-toolbar">
+            <button type="submit">{% if object %}Save changes{% else %}Upload photo{% endif %}</button>
+            <a href="{% url 'photo-list' %}">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -379,6 +379,61 @@ button,
     overflow-wrap: anywhere;
 }
 
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+}
+
+.photo-card {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--surface);
+}
+
+.photo-card > img {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    display: block;
+}
+
+.photo-card-body {
+    padding: 1rem;
+    overflow-wrap: anywhere;
+}
+
+.photo-card-body h2 {
+    font-size: 1.2rem;
+}
+
+.photo-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.photo-controls button {
+    padding: 0.5rem 0.7rem;
+}
+
+button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.photo-form-preview {
+    display: block;
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    border-radius: 14px;
+    background: var(--bg);
+}
+
 .sr-only {
     position: absolute;
     width: 1px;

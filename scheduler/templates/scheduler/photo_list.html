@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Manage carousel photos | Daniel Dream{% endblock %}
+{% block content %}
+<section class="panel">
+    <div class="section-header">
+        <div><p class="eyebrow">Homepage gallery</p><h1>Manage carousel photos</h1></div>
+        {% if perms.scheduler.add_carouselphoto %}<a class="button" href="{% url 'photo-create' %}">Upload photo</a>{% endif %}
+    </div>
+    <p>Visible photos appear on the public homepage in the order shown below. Changes take effect immediately.</p>
+    <p><a href="{% url 'home' %}">View homepage carousel</a></p>
+    {% if photos %}
+        <div class="photo-grid">
+            {% for photo in photos %}
+                <article class="photo-card">
+                    <img src="{% url 'photo-image' photo.pk %}" alt="{{ photo.alt_text }}" loading="lazy">
+                    <div class="photo-card-body">
+                        <span class="document-status">{% if photo.is_active %}Visible{% else %}Hidden{% endif %}</span>
+                        <h2>{{ photo.display_title }}</h2>
+                        <div class="document-actions">
+                            {% if perms.scheduler.change_carouselphoto %}<a href="{% url 'photo-update' photo.pk %}">Edit / Replace<span class="sr-only"> {{ photo.display_title }}</span></a>{% endif %}
+                            {% if perms.scheduler.delete_carouselphoto %}<a class="text-danger" href="{% url 'photo-delete' photo.pk %}">Delete<span class="sr-only"> {{ photo.display_title }}</span></a>{% endif %}
+                        </div>
+                        {% if perms.scheduler.change_carouselphoto %}
+                            <form method="post" action="{% url 'photo-action' photo.pk %}" class="photo-controls">
+                                {% csrf_token %}
+                                <button class="button-secondary" name="action" value="up" {% if forloop.first %}disabled{% endif %} aria-label="Move {{ photo.display_title }} earlier">↑ Earlier</button>
+                                <button class="button-secondary" name="action" value="down" {% if forloop.last %}disabled{% endif %} aria-label="Move {{ photo.display_title }} later">↓ Later</button>
+                                {% if photo.is_active %}<button class="button-secondary" name="action" value="hide">Hide<span class="sr-only"> {{ photo.display_title }}</span></button>{% else %}<button name="action" value="show">Show<span class="sr-only"> {{ photo.display_title }}</span></button>{% endif %}
+                            </form>
+                        {% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No carousel photos yet. Upload a photo to get started.</p>
+    {% endif %}
+</section>
+{% endblock %}
